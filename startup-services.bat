@@ -50,12 +50,13 @@ if %errorlevel% equ 0 (
 )
 
 echo [4/5] Checking Maven...
-mvn -version > nul 2>&1
-if %errorlevel% equ 0 (
-    echo ✓ Maven found
-) else (
+call mvn -version >nul 2>&1
+
+if errorlevel 1 (
     echo ✗ Maven not found. Please install Maven
     exit /b 1
+) else (
+    echo ✓ Maven found
 )
 
 echo [5/5] All prerequisites checked
@@ -156,7 +157,8 @@ echo   Admin ........ http://localhost:8001/swagger-ui.html
 echo   Medical ...... http://localhost:8002/swagger-ui.html
 echo   Pharmacy ..... http://localhost:8004/swagger-ui.html
 echo   Payment ...... http://localhost:8003/swagger-ui.html
-echo   Gateway index  http://localhost:8000/swagger-ui.html
+echo   Gateway (semua API) http://localhost:8000/swagger-ui.html
+echo   OpenAPI YAML file  openapi\growbusiness-gateway-api.yaml
 echo.
 echo JWT Token Secret: GrowBussinessSecretKeyForJWTTokenGenerationAndValidation1234567890
 echo Token Expiration: 24 hours

@@ -1,0 +1,1190 @@
+openapi: 3.0.3
+info:
+  title: GrowBusiness API Gateway
+  description: |
+    Semua endpoint microservices RSU Sumatera melalui **API Gateway** (`http://localhost:8000`).
+
+    **Alur testing:**
+    1. `POST /api/auth/login` dengan JSON (contoh admin di bawah)
+    2. Salin `token` dari response
+    3. Klik **Authorize** → masukkan `Bearer <token>`
+    4. Panggil endpoint lain dengan body JSON sesuai contoh
+
+    **Role:** ADMIN, DOCTOR, PHARMACIST, STAFF, USER
+  version: 1.0.0
+  contact:
+    name: GrowBusiness RS
+
+servers:
+  - url: http://localhost:8000
+    description: API Gateway (local)
+
+tags:
+  - name: Authentication
+    description: Register, login, refresh JWT (tanpa token)
+  - name: Patients
+    description: Admin – manajemen pasien
+  - name: Medical Examinations
+    description: Pemeriksaan medis
+  - name: Prescriptions
+    description: E-resep (memicu Kafka saga)
+  - name: Saga Validation
+    description: Simulasi saga end-to-end (tanpa JWT)
+  - name: Medicines
+    description: Apotek – inventori obat
+  - name: Invoices
+    description: Tagihan / billing
+  - name: Transactions
+    description: Pembayaran
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              admin:
+                summary: Register Admin
+                value:
+                  username: admin
+                  password: admin123
+                  nama: Admin User
+                  email: admin@test.com
+                  role: ADMIN
+              doctor:
+                summary: Register Doctor
+                value:
+                  username: dokter1
+                  password: pass123
+                  nama: Dr. Budi
+                  email: budi@test.com
+                  role: DOCTOR
+              pharmacist:
+                summary: Register Pharmacist
+                value:
+                  username: apt1
+                  password: pass123
+                  nama: Apt. Siti
+                  email: apt@test.com
+                  role: PHARMACIST
+              staff:
+                summary: Register Staff
+                value:
+                  username: staff1
+                  password: pass123
+                  nama: Staff
+                  email: staff@test.com
+                  role: STAFF
+      responses:
+        '201':
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: User registered successfully
+                username: admin
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login (dapatkan JWT)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              username: admin
+              password: admin123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+              example:
+                token: eyJhbGciOiJIUzUxMiJ9.example.token
+                username: admin
+                message: Login successful
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh JWT token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+            example:
+              username: admin
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/admin/patients:
+    post:
+      tags: [Patients]
+      summary: Create patient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasienRequest'
+            example:
+              nik: "3273010101900001"
+              nama: Budi Santoso
+              noRM: RM001
+              alamat: Jln Merdeka No 1, Medan
+              noTelepon: "081234567890"
+              email: budi@example.com
+              jenisKelamin: LAKI-LAKI
+              tanggalLahir: "1990-01-15"
+      responses:
+        '201':
+          description: Patient created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponsePasien'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    get:
+      tags: [Patients]
+      summary: Get all patients
+      responses:
+        '200':
+          description: List of patients
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponsePasien'
+
+  /api/admin/patients/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Patients]
+      summary: Get patient by ID
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponsePasien'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Patients]
+      summary: Update patient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasienRequest'
+            example:
+              nik: "3273010101900001"
+              nama: Budi Santoso Updated
+              noRM: RM001
+              alamat: Jln Merdeka No 2, Medan
+              noTelepon: "082234567890"
+              email: budi.updated@example.com
+              jenisKelamin: LAKI-LAKI
+              tanggalLahir: "1990-01-15"
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponsePasien'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags: [Patients]
+      summary: Delete patient (ADMIN only)
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Patient deleted successfully
+
+  /api/admin/patients/search:
+    get:
+      tags: [Patients]
+      summary: Search patients by name
+      parameters:
+        - name: nama
+          in: query
+          required: true
+          schema:
+            type: string
+          example: Budi
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponsePasien'
+
+  /api/medical/examinations:
+    post:
+      tags: [Medical Examinations]
+      summary: Create medical examination
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PemeriksaanRequest'
+            example:
+              pasienId: 1
+              tekananDarah: 120/80
+              beratBadan: 70.5
+              tinggiBadan: 175.0
+              suhuTubuh: 36.5
+              keluhan: Sakit kepala ringan
+              hasilPemeriksaan: Hasil pemeriksaan normal
+              dokterId: DOK001
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponsePemeriksaan'
+
+  /api/medical/examinations/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Medical Examinations]
+      summary: Get examination by ID
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponsePemeriksaan'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Medical Examinations]
+      summary: Update examination
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PemeriksaanRequest'
+            example:
+              pasienId: 1
+              tekananDarah: 125/85
+              beratBadan: 71.0
+              tinggiBadan: 175.0
+              suhuTubuh: 36.8
+              keluhan: Sakit kepala ringan, agak membaik
+              hasilPemeriksaan: Hasil pemeriksaan membaik
+              dokterId: DOK001
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponsePemeriksaan'
+
+  /api/medical/examinations/patient/{pasienId}:
+    get:
+      tags: [Medical Examinations]
+      summary: Get examinations for patient
+      parameters:
+        - name: pasienId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponsePemeriksaan'
+
+  /api/medical/prescriptions:
+    post:
+      tags: [Prescriptions]
+      summary: Create prescription (Kafka saga)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResepRequest'
+            example:
+              pemeriksaanId: 1
+              pasienId: 1
+              namaObat: Paracetamol
+              dosis: 500mg
+              frekuensi: 3x sehari
+              jumlah: 10
+              catatan: Minum setelah makan
+              dokterNama: Dr. Budi
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseResep'
+
+  /api/medical/prescriptions/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Prescriptions]
+      summary: Get prescription by ID
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseResep'
+
+  /api/medical/prescriptions/patient/{pasienId}:
+    get:
+      tags: [Prescriptions]
+      summary: Get prescriptions for patient
+      parameters:
+        - name: pasienId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponseResep'
+
+  /api/medical/prescriptions/pending:
+    get:
+      tags: [Prescriptions]
+      summary: Get pending prescriptions (PHARMACIST)
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponseResep'
+
+  /api/medical/prescriptions/{id}/status:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+      - name: status
+        in: query
+        required: true
+        schema:
+          type: string
+          enum: [PENDING, RESERVED, COMPLETED, CANCELLED, FAILED_OUT_OF_STOCK]
+        example: COMPLETED
+    patch:
+      tags: [Prescriptions]
+      summary: Update prescription status
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseResep'
+
+  /api/medical/saga-validation/success:
+    post:
+      tags: [Saga Validation]
+      summary: Simulate saga happy path
+      security: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SagaSimulationResponse'
+
+  /api/medical/saga-validation/fail-payment:
+    post:
+      tags: [Saga Validation]
+      summary: Simulate saga – payment cancelled (compensation)
+      security: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SagaSimulationResponse'
+
+  /api/medical/saga-validation/fail-stock:
+    post:
+      tags: [Saga Validation]
+      summary: Simulate saga – out of stock
+      security: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SagaSimulationResponse'
+
+  /api/pharmacy/medicines:
+    post:
+      tags: [Medicines]
+      summary: Create medicine
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ObatRequest'
+            example:
+              kodeObat: OB001
+              namaObat: Paracetamol 500mg
+              deskripsi: Analgesik dan antipiretik
+              harga: 5000
+              satuan: tablet
+              stok: 100
+              stokMinimal: 20
+              supplier: PT Kimia Farma
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseObat'
+    get:
+      tags: [Medicines]
+      summary: Get all medicines
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponseObat'
+
+  /api/pharmacy/medicines/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Medicines]
+      summary: Get medicine by ID
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseObat'
+
+  /api/pharmacy/medicines/search:
+    get:
+      tags: [Medicines]
+      summary: Search medicines by name
+      parameters:
+        - name: nama
+          in: query
+          required: true
+          schema:
+            type: string
+          example: Paracetamol
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponseObat'
+
+  /api/pharmacy/medicines/low-stock:
+    get:
+      tags: [Medicines]
+      summary: Get low stock medicines
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponseObat'
+
+  /api/pharmacy/medicines/{id}/stock:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+      - name: stok
+        in: query
+        required: true
+        schema:
+          type: integer
+        example: 150
+    patch:
+      tags: [Medicines]
+      summary: Update medicine stock
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseObat'
+
+  /api/payment/invoices:
+    post:
+      tags: [Invoices]
+      summary: Create invoice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagihanCreateRequest'
+            example:
+              pasienId: 1
+              biayaKonsultasi: 150000
+              hargaObat: 50000
+              diskonAsuransi: 20000
+      responses:
+        '201':
+          description: Invoice created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseTagihan'
+              example:
+                message: Invoice created successfully
+                data:
+                  id: 1
+                  noInvoice: INV-ABC123DE
+                  pasienId: 1
+                  biayaKonsultasi: 150000
+                  hargaObat: 50000
+                  subtotal: 200000
+                  diskonAsuransi: 20000
+                  pajakPPN: 18000
+                  totalBayar: 198000
+                  status: PENDING
+
+  /api/payment/invoices/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Invoices]
+      summary: Get invoice by ID
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseTagihan'
+
+  /api/payment/invoices/patient/{pasienId}:
+    get:
+      tags: [Invoices]
+      summary: Get invoices for patient
+      parameters:
+        - name: pasienId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponseTagihan'
+
+  /api/payment/invoices/pending:
+    get:
+      tags: [Invoices]
+      summary: Get pending invoices
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponseTagihan'
+
+  /api/payment/invoices/prescription/{resepId}:
+    get:
+      tags: [Invoices]
+      summary: Get invoice by prescription ID
+      parameters:
+        - name: resepId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseTagihan'
+
+  /api/payment/invoices/{id}/status:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+      - name: status
+        in: query
+        required: true
+        schema:
+          type: string
+          example: PAID
+    patch:
+      tags: [Invoices]
+      summary: Update invoice status (ADMIN)
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseTagihan'
+
+  /api/payment/invoices/{id}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Invoices]
+      summary: Cancel invoice (saga compensation)
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseTagihan'
+
+  /api/payment/transactions/process:
+    post:
+      tags: [Transactions]
+      summary: Process payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransaksiRequest'
+            example:
+              tagihanId: 1
+              jumlahBayar: 198000
+              metodePembayaran: TUNAI
+              referensiTransaksi: TRX20260515001
+      responses:
+        '201':
+          description: Payment processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseTransaksi'
+              example:
+                message: Payment processed successfully
+                data:
+                  id: 1
+                  tagihanId: 1
+                  jumlahBayar: 198000
+                  metodePembayaran: TUNAI
+                  statusPembayaran: COMPLETED
+                  referensiTransaksi: TRX20260515001
+
+  /api/payment/transactions/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Transactions]
+      summary: Get transaction by ID
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponseTransaksi'
+
+  /api/payment/transactions/invoice/{tagihanId}:
+    get:
+      tags: [Transactions]
+      summary: Get transactions for invoice
+      parameters:
+        - name: tagihanId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponseTransaksi'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 'Token dari POST /api/auth/login. Format Authorize: Bearer <token>'
+
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+      example: 1
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          example: admin
+        password:
+          type: string
+          format: password
+          example: admin123
+
+    RegisterRequest:
+      type: object
+      required: [username, password, nama, email]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+        nama:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [ADMIN, DOCTOR, PHARMACIST, STAFF, USER]
+          default: USER
+
+    RefreshTokenRequest:
+      type: object
+      required: [username]
+      properties:
+        username:
+          type: string
+          example: admin
+
+    AuthTokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        username:
+          type: string
+        message:
+          type: string
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        username:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+
+    PasienRequest:
+      type: object
+      required: [nik, nama, noRM]
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+        nik:
+          type: string
+          example: "3273010101900001"
+        nama:
+          type: string
+        noRM:
+          type: string
+        alamat:
+          type: string
+        noTelepon:
+          type: string
+        email:
+          type: string
+          format: email
+        jenisKelamin:
+          type: string
+          enum: [LAKI-LAKI, PEREMPUAN]
+        tanggalLahir:
+          type: string
+          format: date
+          example: "1990-01-15"
+
+    Pasien:
+      allOf:
+        - $ref: '#/components/schemas/PasienRequest'
+
+    PemeriksaanRequest:
+      type: object
+      required: [pasienId]
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+        pasienId:
+          type: integer
+          format: int64
+        tekananDarah:
+          type: string
+          example: 120/80
+        beratBadan:
+          type: number
+          format: double
+        tinggiBadan:
+          type: number
+          format: double
+        suhuTubuh:
+          type: number
+          format: double
+        keluhan:
+          type: string
+        hasilPemeriksaan:
+          type: string
+        dokterId:
+          type: string
+
+    ResepRequest:
+      type: object
+      required: [pemeriksaanId, pasienId, namaObat]
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+        pemeriksaanId:
+          type: integer
+          format: int64
+        pasienId:
+          type: integer
+          format: int64
+        namaObat:
+          type: string
+        dosis:
+          type: string
+        frekuensi:
+          type: string
+        jumlah:
+          type: integer
+        catatan:
+          type: string
+        status:
+          type: string
+          readOnly: true
+        dokterNama:
+          type: string
+
+    ObatRequest:
+      type: object
+      required: [kodeObat, namaObat]
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+        kodeObat:
+          type: string
+        namaObat:
+          type: string
+        deskripsi:
+          type: string
+        harga:
+          type: number
+          format: double
+        satuan:
+          type: string
+        stok:
+          type: integer
+        stokMinimal:
+          type: integer
+        supplier:
+          type: string
+
+    TagihanCreateRequest:
+      type: object
+      required: [pasienId]
+      properties:
+        pasienId:
+          type: integer
+          format: int64
+        biayaKonsultasi:
+          type: number
+          format: double
+        hargaObat:
+          type: number
+          format: double
+        diskonAsuransi:
+          type: number
+          format: double
+        resepId:
+          type: integer
+          format: int64
+        namaObat:
+          type: string
+        jumlahObat:
+          type: integer
+
+    Tagihan:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        pasienId:
+          type: integer
+          format: int64
+        resepId:
+          type: integer
+          format: int64
+        noInvoice:
+          type: string
+        biayaKonsultasi:
+          type: number
+        hargaObat:
+          type: number
+        subtotal:
+          type: number
+        diskonAsuransi:
+          type: number
+        pajakPPN:
+          type: number
+        totalBayar:
+          type: number
+        status:
+          type: string
+
+    TransaksiRequest:
+      type: object
+      required: [tagihanId, jumlahBayar, metodePembayaran]
+      properties:
+        tagihanId:
+          type: integer
+          format: int64
+        jumlahBayar:
+          type: number
+          format: double
+        metodePembayaran:
+          type: string
+          example: TUNAI
+        referensiTransaksi:
+          type: string
+        keterangan:
+          type: string
+
+    Transaksi:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        tagihanId:
+          type: integer
+          format: int64
+        jumlahBayar:
+          type: number
+        metodePembayaran:
+          type: string
+        statusPembayaran:
+          type: string
+        referensiTransaksi:
+          type: string
+        keterangan:
+          type: string
+
+    DataResponsePasien:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Pasien'
+
+    ListResponsePasien:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Pasien'
+        count:
+          type: integer
+
+    DataResponsePemeriksaan:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/PemeriksaanRequest'
+
+    ListResponsePemeriksaan:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PemeriksaanRequest'
+        count:
+          type: integer
+
+    DataResponseResep:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/ResepRequest'
+
+    ListResponseResep:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResepRequest'
+        count:
+          type: integer
+
+    DataResponseObat:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/ObatRequest'
+
+    ListResponseObat:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ObatRequest'
+        count:
+          type: integer
+
+    DataResponseTagihan:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Tagihan'
+
+    ListResponseTagihan:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tagihan'
+        count:
+          type: integer
+
+    DataResponseTransaksi:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Transaksi'
+
+    ListResponseTransaksi:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaksi'
+        count:
+          type: integer
+
+    SagaSimulationResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: SUCCESS
+        auditLogs:
+          type: array
+          items:
+            type: string

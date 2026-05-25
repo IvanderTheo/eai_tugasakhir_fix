@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -31,9 +32,13 @@ public class AuthController {
 
     @Operation(summary = "Register user", description = "Create a new user account. Role: ADMIN, DOCTOR, PHARMACIST, STAFF, USER")
     @ApiResponse(responseCode = "201", description = "User registered")
-    @PostMapping(value = "/register", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+    @PostMapping(value = "/register", 
+    consumes=MediaType.APPLICATION_JSON_VALUE,
+    produces=MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         try {
+            log.info("=== REGISTER HIT ===");
+            log.info("username={}", request.getUsername());
             userService.registerUser(
                     request.getUsername(),
                     request.getPassword(),
@@ -54,7 +59,9 @@ public class AuthController {
 
     @Operation(summary = "Login", description = "Returns JWT token. Use token in Swagger **Authorize** for other endpoints.")
     @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = AuthTokenResponse.class)))
-    @PostMapping(value = "/login", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/login", 
+    consumes=MediaType.APPLICATION_JSON_VALUE,
+    produces=MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
             String token = userService.authenticateUser(request.getUsername(), request.getPassword());

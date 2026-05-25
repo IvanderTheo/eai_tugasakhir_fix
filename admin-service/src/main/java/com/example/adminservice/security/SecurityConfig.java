@@ -38,23 +38,32 @@ public class SecurityConfig {
         http
             .cors(Customizer.withDefaults())
             .csrf(csrf -> csrf.disable())
-            .exceptionHandling(exceptionHandling -> exceptionHandling
-                .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
-            )
             .sessionManagement(sessionManagement -> 
                 sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
+            // Configure authorization BEFORE adding exception handling
             .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/health", "/actuator/**").permitAll()
-                .requestMatchers(
-                        "/swagger-ui.html",
-                        "/swagger-ui/**",
-                        "/v3/api-docs/**",
-                        "/v3/api-docs.yaml"
-                ).permitAll()
-                .anyRequest().authenticated()
+                // PUBLIC - NO AUTH REQUIRED
+                .requestMatchers("/api/auth/register").permitAll()         // Register
+                .requestMatchers("/api/auth/login").permitAll()            // Login
+                .requestMatchers("/api/auth/refresh").permitAll()          // Refresh token
+                .requestMatchers("/api/auth/**").permitAll()               // All auth endpoints
+                .requestMatchers("/health").permitAll()
+                .requestMatchers("/health/**").permitAll()
+                .requestMatchers("/actuator/**").permitAll()
+                .requestMatchers("/swagger-ui.html").permitAll()
+                .requestMatchers("/swagger-ui/**").permitAll()
+                .requestMatchers("/v3/api-docs").permitAll()
+                .requestMatchers("/v3/api-docs/**").permitAll()
+                .requestMatchers("/v3/api-docs.yaml").permitAll()
+                // PROTECTED - AUTH REQUIRED
+                .anyRequest().authenticated()                              // All other endpoints require JWT
             )
+            // Exception handling AFTER authorization
+            .exceptionHandling(exceptionHandling -> exceptionHandling
+                .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
+            )
+            // Add filter AFTER security configuration
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

@@ -30,16 +30,35 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private JwtUtil jwtUtil;
 
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-        return HttpMethod.OPTIONS.matches(request.getMethod());
+protected boolean shouldNotFilter(HttpServletRequest request) {
+
+    String path = request.getRequestURI();
+
+    logger.info(
+            "METHOD={} PATH={}",
+            request.getMethod(),
+            path
+    );
+
+    if (HttpMethod.OPTIONS.matches(request.getMethod())) {
+        return true;
     }
+
+    if (path.startsWith("/api/auth/")) {
+        logger.info("Skipping JWT filter");
+        return true;
+    }
+
+    return false;
+}
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         try {
+            logger.info("Request URI: {}", request.getRequestURI());
+            logger.info("Method: {}", request.getMethod());
             String jwt = getJwtFromRequest(request);
-
             if (jwt != null && jwtUtil.validateToken(jwt)) {
                 String username = jwtUtil.getUsernameFromToken(jwt);
                 List<SimpleGrantedAuthority> authorities = extractAuthorities(jwt);

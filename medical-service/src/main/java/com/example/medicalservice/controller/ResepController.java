@@ -41,7 +41,7 @@ public class ResepController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('DOCTOR') or hasRole('STAFF') or hasRole('PHARMACIST')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getResep(@PathVariable Long id) {
         try {
             Resep resep = resepService.getResepById(id);
@@ -57,7 +57,7 @@ public class ResepController {
     }
 
     @GetMapping("/patient/{pasienId}")
-    @PreAuthorize("hasRole('DOCTOR') or hasRole('STAFF') or hasRole('PHARMACIST')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getByPasienId(@PathVariable Long pasienId) {
         try {
             List<Resep> prescriptions = resepService.getResepByPasienId(pasienId);
@@ -74,7 +74,7 @@ public class ResepController {
     }
 
     @GetMapping("/pending")
-    @PreAuthorize("hasRole('PHARMACIST')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getPendingPrescriptions() {
         try {
             List<Resep> prescriptions = resepService.getPendingResep();

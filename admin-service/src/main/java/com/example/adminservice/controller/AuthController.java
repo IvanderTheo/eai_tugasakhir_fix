@@ -4,6 +4,7 @@ import com.example.adminservice.dto.AuthTokenResponse;
 import com.example.adminservice.dto.LoginRequest;
 import com.example.adminservice.dto.RefreshTokenRequest;
 import com.example.adminservice.dto.RegisterRequest;
+import com.example.adminservice.entity.User;
 import com.example.adminservice.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -16,6 +17,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -93,6 +96,38 @@ public class AuthController {
             Map<String, Object> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        }
+    }
+
+    @Operation(summary = "Get user profile", description = "Returns current logged-in user information including ID")
+    @ApiResponse(responseCode = "200", description = "User profile retrieved")
+    @GetMapping(value = "/profile", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> getProfile() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("error", "Not authenticated");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+
+            String username = authentication.getName();
+            User user = userService.getUserByUsername(username);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("userId", user.getId());
+            response.put("username", user.getUsername());
+            response.put("nama", user.getNama());
+            response.put("email", user.getEmail());
+            response.put("role", user.getRole());
+            response.put("isActive", user.getIsActive());
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error fetching profile: {}", e.getMessage());
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
 }

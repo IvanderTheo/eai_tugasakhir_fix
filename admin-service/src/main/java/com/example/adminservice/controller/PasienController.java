@@ -57,7 +57,7 @@ public class PasienController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('STAFF')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getAllPasien() {
         try {
             List<PasienDTO> patients = pasienService.getAllPasien();
@@ -74,7 +74,7 @@ public class PasienController {
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('STAFF')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> searchPasien(@RequestParam String nama) {
         try {
             List<PasienDTO> patients = pasienService.searchPasienByNama(nama);

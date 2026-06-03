@@ -41,7 +41,7 @@ public class TagihanController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getTagihan(@PathVariable Long id) {
         try {
             Tagihan tagihan = tagihanService.getTagihanById(id);
@@ -57,7 +57,7 @@ public class TagihanController {
     }
 
     @GetMapping("/patient/{pasienId}")
-    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getByPasienId(@PathVariable Long pasienId) {
         try {
             List<Tagihan> invoices = tagihanService.getTagihanByPasienId(pasienId);
@@ -74,7 +74,7 @@ public class TagihanController {
     }
 
     @GetMapping("/pending")
-    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getPendingInvoices() {
         try {
             List<Tagihan> invoices = tagihanService.getPendingTagihan();
@@ -91,7 +91,7 @@ public class TagihanController {
     }
 
     @GetMapping("/prescription/{resepId}")
-    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getByResepId(@PathVariable Long resepId) {
         try {
             java.util.Optional<Tagihan> optional = tagihanService.getTagihanByResepId(resepId);

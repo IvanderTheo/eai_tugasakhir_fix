@@ -41,7 +41,7 @@ public class PemeriksaanController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('DOCTOR') or hasRole('STAFF')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getPemeriksaan(@PathVariable Long id) {
         try {
             Pemeriksaan pemeriksaan = pemeriksaanService.getPemeriksaanById(id);
@@ -57,7 +57,7 @@ public class PemeriksaanController {
     }
 
     @GetMapping("/patient/{pasienId}")
-    @PreAuthorize("hasRole('DOCTOR') or hasRole('STAFF')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getByPasienId(@PathVariable Long pasienId) {
         try {
             List<Pemeriksaan> examinations = pemeriksaanService.getPemeriksaanByPasienId(pasienId);

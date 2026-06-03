@@ -149,6 +149,21 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /api/auth/profile:
+    get:
+      tags: [Authentication]
+      summary: Get user profile
+      description: Returns current logged-in user information including ID. Requires Bearer Token.
+      responses:
+        '200':
+          description: User profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /api/admin/patients:
     post:
       tags: [Patients]
@@ -858,6 +873,30 @@ components:
       properties:
         error:
           type: string
+
+    UserProfileResponse:
+      type: object
+      properties:
+        userId:
+          type: integer
+          format: int64
+          example: 1
+        username:
+          type: string
+          example: admin
+        nama:
+          type: string
+          example: Admin User
+        email:
+          type: string
+          format: email
+          example: admin@test.com
+        role:
+          type: string
+          example: ADMIN
+        isActive:
+          type: boolean
+          example: true
 
     PasienRequest:
       type: object

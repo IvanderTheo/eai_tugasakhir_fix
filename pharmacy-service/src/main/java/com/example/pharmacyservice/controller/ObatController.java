@@ -41,7 +41,7 @@ public class ObatController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('PHARMACIST') or hasRole('STAFF')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getObat(@PathVariable Long id) {
         try {
             Obat obat = obatService.getObatById(id);
@@ -57,7 +57,7 @@ public class ObatController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('PHARMACIST') or hasRole('STAFF')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getAllObat() {
         try {
             List<Obat> medicines = obatService.getAllObat();
@@ -74,7 +74,7 @@ public class ObatController {
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasRole('PHARMACIST') or hasRole('STAFF')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> searchObat(@RequestParam String nama) {
         try {
             List<Obat> medicines = obatService.searchObat(nama);
@@ -91,7 +91,7 @@ public class ObatController {
     }
 
     @GetMapping("/low-stock")
-    @PreAuthorize("hasRole('PHARMACIST') or hasRole('ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getLowStock() {
         try {
             List<Obat> medicines = obatService.getLowStockMedicines();

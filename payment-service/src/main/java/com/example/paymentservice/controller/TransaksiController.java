@@ -41,7 +41,7 @@ public class TransaksiController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getTransaksi(@PathVariable Long id) {
         try {
             Transaksi transaksi = transaksiService.getTransaksiById(id);
@@ -57,7 +57,7 @@ public class TransaksiController {
     }
 
     @GetMapping("/invoice/{tagihanId}")
-    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getByTagihanId(@PathVariable Long tagihanId) {
         try {
             List<Transaksi> transactions = transaksiService.getTransaksiByTagihanId(tagihanId);
